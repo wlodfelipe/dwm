@@ -142,6 +142,8 @@ typedef struct {
 } Rule;
 
 /* function declarations */
+static void attachBelow(Client *c);
+/* patches above */
 static void applyrules(Client *c);
 static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
 static void arrange(Monitor *m);
@@ -275,6 +277,27 @@ static Window root, wmcheckwin;
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
 
 /* function implementations */
+
+void
+attachBelow(Client *c) {
+    // If there is nothing on the monitor or the selected client is floating, attach as normal
+    if (c->mon->sel == NULL || c->mon->sel == c || c->mon->sel->isfloating) {
+        attach(c);
+        return;
+    }
+
+    // Set the new client's next property to the same as the currently selected client's next
+    c->next = c->mon->sel->next;
+    // Set the currently selected client's next property to the new client
+    c->mon->sel->next = c;
+
+    // Set the new client's monitor and state
+    c->mon = c->mon; // Ensure client belongs to the same monitor
+    c->isfloating = c->mon->sel->isfloating; // Maintain floating state if necessary
+}
+
+/* patches above */
+
 void
 applyrules(Client *c)
 {
@@ -404,8 +427,15 @@ arrangemon(Monitor *m)
 void
 attach(Client *c)
 {
-	c->next = c->mon->clients;
-	c->mon->clients = c;
+    // If the monitor has no clients, make the new client the first
+    if (c->mon->clients == NULL) {
+        c->next = NULL;
+    } else {
+        // Attach the new client to the beginning of the list
+        c->next = c->mon->clients;
+    }
+    // Update the monitor's client list
+    c->mon->clients = c;
 }
 
 void
@@ -1038,10 +1068,10 @@ manage(Window w, XWindowAttributes *wa)
 	c = ecalloc(1, sizeof(Client));
 	c->win = w;
 	/* geometry */
-	c->x = c->oldx = wa->x;
-	c->y = c->oldy = wa->y;
-	c->w = c->oldw = wa->width;
-	c->h = c->oldh = wa->height;
+	c->x = c->oldx = wa->x + gappx; // Add gap size to the x position
+	c->y = c->oldy = wa->y + gappx; // Add gap size to the y position
+	c->w = c->oldw = wa->width - 2 * gappx; // Subtract gap size from the width
+	c->h = c->oldh = wa->height - 2 * gappx; // Subtract gap size from the height
 	c->oldbw = wa->border_width;
 
 	updatetitle(c);
@@ -1053,12 +1083,13 @@ manage(Window w, XWindowAttributes *wa)
 		applyrules(c);
 	}
 
+	// Adjust position checks to consider gaps
 	if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww)
 		c->x = c->mon->wx + c->mon->ww - WIDTH(c);
 	if (c->y + HEIGHT(c) > c->mon->wy + c->mon->wh)
 		c->y = c->mon->wy + c->mon->wh - HEIGHT(c);
-	c->x = MAX(c->x, c->mon->wx);
-	c->y = MAX(c->y, c->mon->wy);
+	c->x = MAX(c->x, c->mon->wx + gappx); // Adjust the minimum x position with gaps
+	c->y = MAX(c->y, c->mon->wy + gappx); // Adjust the minimum y position with gaps
 	c->bw = borderpx;
 
 	wc.border_width = c->bw;
@@ -1074,7 +1105,13 @@ manage(Window w, XWindowAttributes *wa)
 		c->isfloating = c->oldstate = trans != None || c->isfixed;
 	if (c->isfloating)
 		XRaiseWindow(dpy, c->win);
-	attach(c);
+
+	// Use attachBelow or attach based on attachbelow variable
+	if (attachbelow)
+		attachBelow(c);
+	else
+		attach(c);
+
 	attachstack(c);
 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
 		(unsigned char *) &(c->win), 1);
@@ -1427,7 +1464,13 @@ sendmon(Client *c, Monitor *m)
 	detachstack(c);
 	c->mon = m;
 	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
-	attach(c);
+
+	// Use attachBelow or attach based on attachbelow variable
+	if (attachbelow)
+		attachBelow(c);
+	else
+		attach(c);
+		
 	attachstack(c);
 	focus(NULL);
 	arrange(NULL);
@@ -1864,6 +1907,7 @@ updateclientlist(void)
 				(unsigned char *) &(c->win), 1);
 }
 
+
 int
 updategeom(void)
 {
@@ -1915,7 +1959,13 @@ updategeom(void)
 				m->clients = c->next;
 				detachstack(c);
 				c->mon = mons;
-				attach(c);
+
+				// Use attachBelow or attach based on attachbelow variable
+				if (attachbelow)
+					attachBelow(c);
+				else
+					attach(c);
+
 				attachstack(c);
 			}
 			if (m == selmon)
