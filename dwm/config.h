@@ -32,6 +32,7 @@ static const Rule rules[] = {
 	 */
 	/* class      instance    title              tags mask  isfloating  isfullscreen  isterminal  noswallow  monitor */
 	{ "Gimp",     NULL,       NULL,              0,         1,          0,            0,          0,         -1 },
+	{ "Nautilus", NULL,       NULL,              0,         1,          0,            0,          0,         -1 },
 	{ "zen",      NULL,       NULL,              1 << 8,    0,          0,            0,          -1,        -1 },
 	{ "zen",      NULL,       "Developer Tools", 0,         1,          0,            0,          -1,        -1 },
 	{ "kitty",    NULL,       NULL,              0,         0,          0,            1,          0,         -1 },
@@ -86,7 +87,7 @@ static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = appmenu } },
 	{ MODKEY|ShiftMask,             XK_p,      spawn,          {.v = dmenucmd } },
-	{ MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
+	{ MODKEY,                       XK_s,      togglescratch,  {.v = scratchpadcmd } },
 	{ MODKEY,                       XK_e,      spawn,          {.v = filemanager } },
 	{ MODKEY,                       XK_v,      spawn,          {.v = clipcmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },

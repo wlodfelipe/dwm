@@ -10,8 +10,9 @@ case ":$XDG_DATA_DIRS:" in
 esac
 
 dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP
+systemctl --user start dwm-session.target
 
-setxkbmap -layout us -option ''
+setxkbmap -layout br -option ''
 [ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
 
 xset s 600 600
@@ -43,3 +44,5 @@ done
 for p in clipmenud clipserve automirror batmon wallpaper sxhkd picom slstatus dunst lxpolkit gammastep xss-lock; do
 	pkill -u "$(id -u)" -x "$p"
 done
+
+systemctl --user stop dwm-session.target
