@@ -1,0 +1,33 @@
+#!/bin/sh
+
+menu() { dmenu -i -p "$1" -fn monospace:size=10 -nb '#222222' -nf '#bbbbbb' -sb '#829e8d' -sf '#000000'; }
+notify() { notify-send -a hwkey -u low -t 2500 -h string:x-dunst-stack-tag:bt "$1"; }
+
+if bluetoothctl show | grep -q 'Powered: yes'; then
+	list=$(bluetoothctl devices Paired | while read -r _ mac name; do
+		if bluetoothctl info "$mac" | grep -q 'Connected: yes'; then
+			echo "● $name  $mac"
+		else
+			echo "○ $name  $mac"
+		fi
+	done)
+	choice=$(printf '%s\n%s\n' "$list" "turn bluetooth off" | sed '/^$/d' | menu bluetooth) || exit 0
+else
+	choice=$(echo "turn bluetooth on" | menu bluetooth) || exit 0
+fi
+
+case $choice in
+"turn bluetooth on")  bluetoothctl power on >/dev/null && notify "Bluetooth: on" ;;
+"turn bluetooth off") bluetoothctl power off >/dev/null && notify "Bluetooth: off" ;;
+"● "*)
+	mac=${choice##* }; name=${choice#● }; name=${name%  *}
+	bluetoothctl disconnect "$mac" >/dev/null && notify "Disconnected: $name" ;;
+"○ "*)
+	mac=${choice##* }; name=${choice#○ }; name=${name%  *}
+	notify "Connecting: $name…"
+	if bluetoothctl connect "$mac" >/dev/null; then
+		notify "Connected: $name"
+	else
+		notify "Failed to connect: $name"
+	fi ;;
+esac

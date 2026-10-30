@@ -1,4 +1,2 @@
 # dwm
-personal dmw conf
-
-- need feh installed for background image
+personal dwm config WIP

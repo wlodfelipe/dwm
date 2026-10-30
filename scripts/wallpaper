@@ -1,0 +1,9 @@
+#!/bin/sh
+
+dir="${WALLPAPER_DIR:-$HOME/Pictures/Wallpapers}"
+
+while :; do
+	f=$(find "$dir" -type f | shuf -n 1)
+	[ -n "$f" ] && feh --no-fehbg --bg-scale "$f"
+	sleep 1800
+done

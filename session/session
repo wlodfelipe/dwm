@@ -1,0 +1,36 @@
+#!/bin/sh
+
+export XDG_CURRENT_DESKTOP=dwm
+export PATH="$HOME/.local/bin:$PATH"
+unset WAYLAND_DISPLAY
+
+dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP
+
+setxkbmap -layout us -option ''
+[ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
+
+xset s 600 600
+xset dpms 900 900 900
+xss-lock --transfer-sleep-lock -- i3lock --nofork -c 222222 &
+
+wallpaper &
+sxhkd &
+picom &
+slstatus &
+dunst &
+lxpolkit &
+
+# restart dwm only if it crashes; fall back to the last good build if it dies right away
+DWM="$HOME/.local/bin/dwm"
+while :; do
+	start=$(date +%s)
+	"$DWM" 2>>"$HOME/.cache/dwm.log" && break
+	if [ $(( $(date +%s) - start )) -lt 5 ]; then
+		DWM="$HOME/.local/bin/dwm.good"
+		sleep 1
+	fi
+done
+
+for p in wallpaper sxhkd picom slstatus dunst lxpolkit xss-lock; do
+	pkill -u "$(id -u)" -x "$p"
+done
