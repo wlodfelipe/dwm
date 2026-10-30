@@ -1,0 +1,12 @@
+#!/bin/sh
+
+choice=$(printf 'lock\nlogout\nsuspend\nreboot\nshutdown\n' |
+	dmenu -i -p power -fn monospace:size=10 -nb '#222222' -nf '#bbbbbb' -sb '#829e8d' -sf '#000000') || exit 0
+
+case $choice in
+lock)     loginctl lock-session ;;
+logout)   pkill -TERM -u "$(id -u)" -x 'dwm|dwm\.good' ;;
+suspend)  systemctl suspend ;;
+reboot)   systemctl reboot ;;
+shutdown) systemctl poweroff ;;
+esac

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+bat=/sys/class/power_supply/BAT0
+warned=100
+
+while :; do
+	cap=$(cat "$bat/capacity")
+	if [ "$(cat "$bat/status")" = Discharging ]; then
+		if [ "$cap" -le 5 ] && [ "$warned" -gt 5 ]; then
+			notify-send -u critical "Battery critical: $cap%" "Plug in the charger now"
+			warned=5
+		elif [ "$cap" -le 15 ] && [ "$warned" -gt 15 ]; then
+			notify-send -u normal "Battery low: $cap%"
+			warned=15
+		fi
+	else
+		warned=100
+	fi
+	sleep 60
+done

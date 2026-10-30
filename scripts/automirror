@@ -1,0 +1,60 @@
+#!/bin/sh
+
+externals() {
+	for s in /sys/class/drm/card*-*/status; do
+		case $s in *eDP*|*LVDS*) continue ;; esac
+		[ "$(cat "$s")" = connected ] && echo "$s"
+	done
+}
+
+modes() {
+	awk -v o="$1" '$1 == o { f = 1; next } /^[^ ]/ { f = 0 } f && $1 ~ /^[0-9]+x[0-9]+$/ { print $1 }'
+}
+
+best_common() {
+	{ echo "$xr" | modes "$1" | sort -u; echo "$xr" | modes "$2" | sort -u; } |
+		sort | uniq -d | awk -Fx '{ print $1 * $2, $0 }' | sort -n | tail -n 1 | cut -d' ' -f2
+}
+
+apply() {
+	xr=$(xrandr)
+	internal=$(echo "$xr" | awk '/ connected/ && $1 ~ /^(eDP|LVDS)/ { print $1; exit }')
+	external=$(echo "$xr" | awk '/ connected/ && $1 !~ /^(eDP|LVDS)/ { print $1; exit }')
+
+	for o in $(echo "$xr" | awk '/ disconnected [0-9]/ { print $1 }'); do
+		xrandr --output "$o" --off
+	done
+
+	if [ -z "$external" ]; then
+		xrandr --output "$internal" --auto --primary
+		return
+	fi
+
+	mode=$(best_common "$internal" "$external")
+	if [ -n "$mode" ]; then
+		xrandr --output "$internal" --mode "$mode" --pos 0x0 --primary \
+			--output "$external" --mode "$mode" --scale 1x1 --same-as "$internal"
+	else
+		native=$(echo "$xr" | modes "$internal" | head -n 1)
+		mode=$(echo "$xr" | modes "$external" | head -n 1)
+		xrandr --output "$internal" --auto --pos 0x0 --primary \
+			--output "$external" --auto --scale-from "$native" --same-as "$internal"
+	fi
+	notify-send -u low -t 3000 "Mirroring $external ($mode)"
+}
+
+last=
+while :; do
+	cur=$(externals)
+	if [ "$cur" != "$last" ]; then
+		last=$cur
+		sleep 0.5
+		apply
+		# gammastep only adjusts the CRTCs it saw at startup
+		if pkill -x gammastep; then
+			sleep 0.5
+			gammastep >/dev/null 2>&1 &
+		fi
+	fi
+	sleep 1
+done

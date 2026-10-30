@@ -6,6 +6,7 @@
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int gappx     = 5;        /* gaps between windows */
 static const unsigned int snap      = 32;       /* snap pixel */
+static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const char *fonts[]          = { "monospace:size=10" };
@@ -29,10 +30,12 @@ static const Rule rules[] = {
 	 *	WM_CLASS(STRING) = instance, class
 	 *	WM_NAME(STRING) = title
 	 */
-	/* class      instance    title       tags mask     isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
-	{ "firefox",  NULL,       "Developer Tools", 0,     1,           -1 },
+	/* class      instance    title              tags mask  isfloating  isfullscreen  isterminal  noswallow  monitor */
+	{ "Gimp",     NULL,       NULL,              0,         1,          0,            0,          0,         -1 },
+	{ "zen",      NULL,       NULL,              1 << 8,    0,          0,            0,          -1,        -1 },
+	{ "zen",      NULL,       "Developer Tools", 0,         1,          0,            0,          -1,        -1 },
+	{ "kitty",    NULL,       NULL,              0,         0,          0,            1,          0,         -1 },
+	{ NULL,       NULL,       "Event Tester",    0,         0,          0,            0,          1,         -1 }, /* xev */
 };
 
 /* layout(s) */
@@ -65,6 +68,13 @@ static const Layout layouts[] = {
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
 static const char *termcmd[]  = { "kitty", NULL };
+static const char *appmenu[]  = { "dmenu-apps", NULL };
+static const char scratchpadname[] = "scratchpad";
+static const char *scratchpadcmd[] = { "kitty", "--title", scratchpadname, "-o", "remember_window_size=no",
+	"-o", "initial_window_width=120c", "-o", "initial_window_height=34c", NULL };
+static const char *filemanager[] = { "nautilus", "--new-window", NULL };
+static const char *powermenu[] = { "dmenu-power", NULL };
+static const char *clipcmd[] = { "clipmenu", "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
 #define HWKEY(a) { .v = (const char*[]){ "hwkey", a, NULL } }
 static const char *mediaPlay[]  = { "playerctl", "play-pause", NULL };
 static const char *mediaNext[]  = { "playerctl", "next", NULL };
@@ -74,7 +84,11 @@ static const char *lockcmd[]    = { "loginctl", "lock-session", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
-	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+	{ MODKEY,                       XK_p,      spawn,          {.v = appmenu } },
+	{ MODKEY|ShiftMask,             XK_p,      spawn,          {.v = dmenucmd } },
+	{ MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
+	{ MODKEY,                       XK_e,      spawn,          {.v = filemanager } },
+	{ MODKEY,                       XK_v,      spawn,          {.v = clipcmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY|ShiftMask,             XK_b,      spawn,          {.v = btmenu } },
@@ -92,6 +106,7 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
 	{ MODKEY,                       XK_space,  spawn,          HWKEY("kb-next") },
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+	{ MODKEY|ShiftMask,             XK_f,      togglefullscr,  {0} },
 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
 	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
 	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
@@ -107,7 +122,7 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ MODKEY|ShiftMask,             XK_q,      spawn,          {.v = powermenu } },
 	{ MODKEY|ControlMask|ShiftMask, XK_q,      quit,           {1} },
 	{ 0,                            XF86XK_AudioRaiseVolume, spawn, HWKEY("vol-up") },
 	{ 0,                            XF86XK_AudioLowerVolume, spawn, HWKEY("vol-down") },

@@ -4,6 +4,11 @@ export XDG_CURRENT_DESKTOP=dwm
 export PATH="$HOME/.local/bin:$PATH"
 unset WAYLAND_DISPLAY
 
+case ":$XDG_DATA_DIRS:" in
+*flatpak*) ;;
+*) export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ;;
+esac
+
 dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP
 
 setxkbmap -layout us -option ''
@@ -19,6 +24,10 @@ picom &
 slstatus &
 dunst &
 lxpolkit &
+gammastep &
+batmon &
+automirror &
+clipmenud &
 
 # restart dwm only if it crashes; fall back to the last good build if it dies right away
 DWM="$HOME/.local/bin/dwm"
@@ -31,6 +40,6 @@ while :; do
 	fi
 done
 
-for p in wallpaper sxhkd picom slstatus dunst lxpolkit xss-lock; do
+for p in clipmenud clipserve automirror batmon wallpaper sxhkd picom slstatus dunst lxpolkit gammastep xss-lock; do
 	pkill -u "$(id -u)" -x "$p"
 done

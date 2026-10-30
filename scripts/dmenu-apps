@@ -1,0 +1,4 @@
+#!/bin/sh
+
+exec j4-dmenu-desktop --term-mode=kitty --usage-log="$HOME/.cache/j4-usage" \
+	--dmenu="dmenu -i -p run -fn monospace:size=10 -nb '#222222' -nf '#bbbbbb' -sb '#829e8d' -sf '#000000'"

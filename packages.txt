@@ -4,6 +4,7 @@ xorg-x11-xinit
 xorg-x11-server-Xephyr
 libXft-devel
 libXinerama-devel
+libxcb-devel
 dmenu
 feh
 sxhkd
@@ -17,3 +18,6 @@ playerctl
 dunst
 lxpolkit
 picom
+j4-dmenu-desktop
+gammastep
+xinput
